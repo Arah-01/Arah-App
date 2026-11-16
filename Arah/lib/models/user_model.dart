@@ -11,6 +11,16 @@ class UserModel {
   final String githubUrl;
   final String linkedinUrl;
   final bool isProfilePublic;
+  //newly added field
+  final String sellercategory;
+  final int trustScore;
+  final int completedshortTermTasks;
+  final List<String> uniqueBuyerIds;
+  final int positiveReviewCount;
+  final bool isLongtermEligible;
+  final String verificationStatus;
+  final String AccountStatus;
+  final DateTime? suspensionEndDate;
 
   UserModel({
     required this.id,
@@ -25,6 +35,16 @@ class UserModel {
     this.githubUrl = '',
     this.linkedinUrl = '',
     this.isProfilePublic = true,
+    //Default values for newly added fields
+    this.sellercategory = '',
+    this.trustScore = 50,
+    this.completedshortTermTasks = 0,
+    this.uniqueBuyerIds = const [],
+    this.positiveReviewCount = 0,
+    this.isLongtermEligible = false,
+    this.verificationStatus = 'Not Verified',
+    this.AccountStatus = 'Active',
+    this.suspensionEndDate,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -41,6 +61,16 @@ class UserModel {
       githubUrl: map['githubUrl'] ?? '',
       linkedinUrl: map['linkedinUrl'] ?? '',
       isProfilePublic: map['isProfilePublic'] ?? true,
+      // Newly added fields
+      sellercategory: map['sellercategory'] ?? 'short_term',
+      trustScore: map['trustScore'] ?? 50,
+      completedshortTermTasks: map['completedshortTermTasks'] ?? 0,
+      uniqueBuyerIds: List<String>.from(map['uniqueBuyerIds'] ?? []),
+      positiveReviewCount: map['positiveReviewCount'] ?? 0,
+      isLongtermEligible: map['isLongtermEligible'] ?? false,
+      verificationStatus: map['verificationStatus'] ?? 'Not Verified',
+      AccountStatus: map['AccountStatus'] ?? 'Active',
+      suspensionEndDate: map['suspensionEndDate'] != null ? DateTime.parse(map['suspensionEndDate']) : null,
     );
   }
 
@@ -57,6 +87,16 @@ class UserModel {
       'githubUrl': githubUrl,
       'linkedinUrl': linkedinUrl,
       'isProfilePublic': isProfilePublic,
+      // Newly added fields
+      'sellercategory': sellercategory,
+      'trustScore': trustScore,
+      'completedshortTermTasks': completedshortTermTasks,
+      'uniqueBuyerIds': uniqueBuyerIds,
+      'positiveReviewCount': positiveReviewCount,
+      'isLongtermEligible': isLongtermEligible,
+      'verificationStatus': verificationStatus,
+      'AccountStatus': AccountStatus,
+      'suspensionEndDate': suspensionEndDate?.toIso8601String(),
     };
   }
 
@@ -70,6 +110,15 @@ class UserModel {
     String? linkedinUrl,
     String? currentMode,
     bool? isProfilePublic,
+    String sellercategory,
+    int? trustScore,
+    int? completedshortTermTasks,
+    List<String>? uniqueBuyerIds,
+    int? positiveReviewCount,
+    bool? isLongtermEligible,
+    String? verificationStatus,
+    String? AccountStatus,
+    DateTime? suspensionEndDate,
   }) {
     return UserModel(
       id: id,
@@ -84,6 +133,15 @@ class UserModel {
       linkedinUrl: linkedinUrl ?? this.linkedinUrl,
       currentMode: currentMode ?? this.currentMode,
       isProfilePublic: isProfilePublic ?? this.isProfilePublic,
+      sellercategory: sellercategory ?? this.sellercategory,
+      trustScore: trustScore ?? this.trustScore,
+      completedshortTermTasks: completedshortTermTasks ?? this.completedshortTermTasks,
+      uniqueBuyerIds: uniqueBuyerIds ?? this.uniqueBuyerIds,
+      positiveReviewCount: positiveReviewCount ?? this.positiveReviewCount,
+      isLongtermEligible: isLongtermEligible ?? this.isLongtermEligible,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      AccountStatus: AccountStatus ?? this.AccountStatus,
+      suspensionEndDate: suspensionEndDate ?? this.suspensionEndDate,
     );
   }
 }

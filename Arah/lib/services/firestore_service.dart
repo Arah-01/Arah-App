@@ -243,6 +243,66 @@ class FirestoreService {
     });
     await batch.commit();
   }
+  // ─── RATINGS & REVIEWS For Match*Making ─────────────────────────────────────────────────────
+  ///Record a completed task for a seller, update trust score, and checks if they qualify for the long term promotion
+  Future<void>recordTaskCompletionAndcheckEligibilty({
+    required String sellerId,
+    required String buyerId,
+    required bool isPositiveReview,
+    required double rating,
+  }) async{
+    final userRef=_db.collection('users').doc(sellerId);
+    await _db.runTransection((transection)async{
+    final Snapshot=await transection.get(userRef);
+    if(Snapshot.exists) return;
+    final data=Snapshot.data()!;
+    
+    //Update completed short term tasks
+    int completedTasks=(data['completedshortTermTasks']??0)+1;
+    
+    //Update unique buyer IDs
+    List<String> uniqueBuyerIds=List<String>.from(data['uniqueBuyerIds']??[]);
+    if(!uniqueBuyerIds.contains(buyerId)){
+      uniqueBuyerIds.add(buyerId);
+    }
+   
+    //Update positive review count
+    int positiveReviewCount=(data['positiveReviewCount']??0);
+    if(isPositiveReview){
+      positiveReviewCount+=1;
+    }
+
+    //Calculate new trust score
+    int trustScore=(data['trustScore']??50);
+    if(rating>=4.0){
+      trustScore+=2.clamp(0,100);
+      }else if(rating<=3.0){
+        trustScore-=5.clamp(0,100);
+        }
+
+    String category=data['sellercategory']??'short_term';
+    bool isLongtermEligible=data['isLongtermEligible']??false;
+    String verificationStatus=data['verificationStatus']??'Not Verified';
+
+    //Check if seller qualifies for long term promotion
+    if(category=='short_term' && !isLongtermEligible){
+      if(completedTasks>=9 && trustScore>=70 && positiveReviewCount>=9 && uniqueBuyerIds.length>=9){
+        isLongtermEligible=true;
+        verificationStatus='pending_admin_review';
+      }
+    }
+
+    //save data
+    transection.update(userRef,{
+      'completedshortTermTasks':completedTasks,
+      'uniqueBuyerIds':uniqueBuyerIds,
+      'positiveReviewCount':positiveReviewCount,
+      'trustScore':trustScore,
+      'isLongtermEligible':isLongtermEligible,
+      'verificationStatus':verificationStatus,
+    });
+    });
+  }
 
   /// Save a rating and review, update the rated user's average rating
   Future<void> saveRating({
@@ -294,6 +354,16 @@ class FirestoreService {
       }
     } catch (e) {
       // Non-critical — rating saved, average update failed
+    }
+    //Smart Matching
+    if(isBuyerRating){
+      //Buyer rated seller
+      await recordTaskCompletionAndcheckEligibilty(
+        sellerId: ratedUserId,
+        buyerId: raterId,
+        isPositiveReview: rating>=4.0,
+        rating: rating,
+      );
     }
   }
 
