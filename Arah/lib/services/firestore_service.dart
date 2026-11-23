@@ -252,8 +252,8 @@ class FirestoreService {
     required double rating,
   }) async{
     final userRef=_db.collection('users').doc(sellerId);
-    await _db.runTransection((transection)async{
-    final snapshot=await transection.get(userRef);
+    await _db.runTransaction((transaction) async {
+    final snapshot=await transaction.get(userRef);
     if(!snapshot.exists) return;
     final data=snapshot.data()!;
     
@@ -267,35 +267,31 @@ class FirestoreService {
     }
    
     //Update positive review count
-    List<String> positiveReviewcbuyerids=List<String>.from(data['positiveReviewcbuyerids']??[]);
-    if(isPositiveReview && !positiveReviewcbuyerids.contains(buyerId)){
-      positiveReviewcbuyerids.add(buyerId);
+    List<String> positiveReviewbuyerids=List<String>.from(data['positiveReviewbuyerids']??[]);
+    if(isPositiveReview && !positiveReviewbuyerids.contains(buyerId)){
+      positiveReviewbuyerids.add(buyerId);
     }
-    int positiveReviewCount=positiveReviewcbuyerids.length;
-    // int positiveReviewCount=(data['positiveReviewCount']??0);
-    // if(isPositiveReview){
-    //   positiveReviewCount+=1;
-    // }
+    int positiveReviewCount=positiveReviewbuyerids.length;
 
     //Calculate new trust score
     int trustScore=(data['trustScore']??50);
-    if(rating>=4.0){
-      trustScore+=2.clamp(0,100);
+    if(rating>3.0){
+      trustScore=(trustScore+3).clamp(0,100);
       }else if(rating<=3.0){
-        trustScore-=5.clamp(0,100);
+        trustScore=(trustScore-5).clamp(0,100);
         }
 
-    String category=data['sellercategory']??'short_term';
+    String category=data['sellerCategory']??'short_term';
     bool isLongtermEligible=data['isLongtermEligible']??false;
     String verificationStatus=data['verificationStatus']??'Not Verified';
 
     // 70% trust Score Threshold, 9 completed tasks, 9 unique buyers, and 9 positive reviews for long term promotion eligibility
-    bool islongtermpaused=data['islongtermpaused']??false;
+    bool isLongTermPaused=data['isLongTermPaused']??false;
     if(category=='long_term' || verificationStatus=='approved'){
       if(trustScore<70){
-        islongtermpaused=true;
+        isLongTermPaused=true;
       }else{
-        islongtermpaused=false;
+        isLongTermPaused=false;
       }
     }
 
@@ -308,15 +304,15 @@ class FirestoreService {
     }
 
     //save data
-    transection.update(userRef, {
+    transaction.update(userRef, {
       'completedshortTermTasks':completedTasks,
       'uniqueBuyerIds':uniqueBuyerIds,
       'positiveReviewCount':positiveReviewCount,
       'trustScore':trustScore,
       'isLongtermEligible':isLongtermEligible,
       'verificationStatus':verificationStatus,
-      'islongtermpaused':islongtermpaused,
-      'positiveReviewcbuyerids':positiveReviewcbuyerids,
+      'isLongTermPaused':isLongTermPaused,
+      'positiveReviewbuyerids':positiveReviewbuyerids,
     });
     });
   }
@@ -378,7 +374,7 @@ class FirestoreService {
       await recordTaskCompletionAndcheckEligibilty(
         sellerId: ratedUserId,
         buyerId: raterId,
-        isPositiveReview: rating>=4.0,
+        isPositiveReview: rating > 3.0,
         rating: rating,
       );
     }
@@ -501,7 +497,7 @@ class FirestoreService {
           .toList();
 
       // 3. Scoring & Relevance Calculation (Skills match + Trust Score balance)
-      List> scoredSellers = allSellers.map((seller) {
+      List> scoredSellers = allSellers.map>((seller) {
         
         // find Skill match count 
         int matchedSkillsCount = seller.skills.where((skill) => requiredSkills.contains(skill)).length;
@@ -543,6 +539,5 @@ class FirestoreService {
       print('Error in smart matching: $e');
       return [];
     }
-    String verificationStatus = data['verificationStatus'] ?? 'Not Verified';
   }
 }
