@@ -21,6 +21,8 @@ class UserModel {
   final String verificationStatus;
   final String AccountStatus;
   final DateTime? suspensionEndDate;
+  final List<String> positiveReviewcbuyerids; // List to store IDs of positive reviews buyers
+  final bool islongtermpaused;
 
   UserModel({
     required this.id,
@@ -45,6 +47,8 @@ class UserModel {
     this.verificationStatus = 'Not Verified',
     this.AccountStatus = 'Active',
     this.suspensionEndDate,
+    this.positiveReviewcbuyerids = const [],
+    this.islongtermpaused = false,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
@@ -71,6 +75,8 @@ class UserModel {
       verificationStatus: map['verificationStatus'] ?? 'Not Verified',
       AccountStatus: map['AccountStatus'] ?? 'Active',
       suspensionEndDate: map['suspensionEndDate'] != null ? DateTime.parse(map['suspensionEndDate']) : null,
+      positiveReviewcbuyerids: List<String>.from(map['positiveReviewcbuyerids'] ?? [])
+      islongtermpaused: map['islongtermpaused'] ?? false,
     );
   }
 
@@ -97,6 +103,8 @@ class UserModel {
       'verificationStatus': verificationStatus,
       'AccountStatus': AccountStatus,
       'suspensionEndDate': suspensionEndDate?.toIso8601String(),
+      'positiveReviewcbuyerids': positiveReviewcbuyerids,
+      'islongtermpaused': islongtermpaused,
     };
   }
 

@@ -253,9 +253,9 @@ class FirestoreService {
   }) async{
     final userRef=_db.collection('users').doc(sellerId);
     await _db.runTransection((transection)async{
-    final Snapshot=await transection.get(userRef);
-    if(Snapshot.exists) return;
-    final data=Snapshot.data()!;
+    final snapshot=await transection.get(userRef);
+    if(!snapshot.exists) return;
+    final data=snapshot.data()!;
     
     //Update completed short term tasks
     int completedTasks=(data['completedshortTermTasks']??0)+1;
@@ -267,10 +267,15 @@ class FirestoreService {
     }
    
     //Update positive review count
-    int positiveReviewCount=(data['positiveReviewCount']??0);
-    if(isPositiveReview){
-      positiveReviewCount+=1;
+    List<String> positiveReviewcbuyerids=List<String>.from(data['positiveReviewcbuyerids']??[]);
+    if(isPositiveReview && !positiveReviewcbuyerids.contains(buyerId)){
+      positiveReviewcbuyerids.add(buyerId);
     }
+    int positiveReviewCount=positiveReviewcbuyerids.length;
+    // int positiveReviewCount=(data['positiveReviewCount']??0);
+    // if(isPositiveReview){
+    //   positiveReviewCount+=1;
+    // }
 
     //Calculate new trust score
     int trustScore=(data['trustScore']??50);
@@ -284,6 +289,16 @@ class FirestoreService {
     bool isLongtermEligible=data['isLongtermEligible']??false;
     String verificationStatus=data['verificationStatus']??'Not Verified';
 
+    // 70% trust Score Threshold, 9 completed tasks, 9 unique buyers, and 9 positive reviews for long term promotion eligibility
+    bool islongtermpaused=data['islongtermpaused']??false;
+    if(category=='long_term' || verificationStatus=='approved'){
+      if(trustScore<70){
+        islongtermpaused=true;
+      }else{
+        islongtermpaused=false;
+      }
+    }
+
     //Check if seller qualifies for long term promotion
     if(category=='short_term' && !isLongtermEligible){
       if(completedTasks>=9 && trustScore>=70 && positiveReviewCount>=9 && uniqueBuyerIds.length>=9){
@@ -293,13 +308,15 @@ class FirestoreService {
     }
 
     //save data
-    transection.update(userRef,{
+    transection.update(userRef, {
       'completedshortTermTasks':completedTasks,
       'uniqueBuyerIds':uniqueBuyerIds,
       'positiveReviewCount':positiveReviewCount,
       'trustScore':trustScore,
       'isLongtermEligible':isLongtermEligible,
       'verificationStatus':verificationStatus,
+      'islongtermpaused':islongtermpaused,
+      'positiveReviewcbuyerids':positiveReviewcbuyerids,
     });
     });
   }
@@ -457,5 +474,75 @@ class FirestoreService {
     await _db.collection('chats').doc(chatId).update({
       'unreadCounts.$userId': 0,
     });
+  }
+
+  /// Advanced Smart Matching with Category Separation & Balanced Exposure Scoring
+  Future<List<UserModel>> getSmartMatchedSellers({
+    required String buyerCategory, // 'short_term' or 'long_term'
+    required List<String> requiredSkills,
+  }) async {
+    try {
+      // 1. Base query:fetch trough Active, available and category
+      Query query = _db.collection('users')
+          .where('accountStatus', isEqualTo: 'active')
+          .where('isAvailable', isEqualTo: true)
+          .where('sellerCategory', isEqualTo: buyerCategory);
+
+      // 2. strict verification and pause check for long term buyers (only approved and not paused sellers)
+      if (buyerCategory == 'long_term') {
+        query = query
+            .where('verificationStatus', isEqualTo: 'approved')
+            .where('isLongTermPaused', isEqualTo: false);
+      }
+
+      final snapshot = await query.get();
+      List<UserModel> allSellers = snapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+
+      // 3. Scoring & Relevance Calculation (Skills match + Trust Score balance)
+      List> scoredSellers = allSellers.map((seller) {
+        
+        // find Skill match count 
+        int matchedSkillsCount = seller.skills.where((skill) => requiredSkills.contains(skill)).length;
+        
+       // if not any skill meeted and its optional skill then we can ignore this seller as irrelevant
+        if (requiredSkills.isNotEmpty && matchedSkillsCount == 0) {
+          return {'seller': seller, 'score': -1.0}; // Irrelevant seller
+        }
+
+        // Skill Match Weight (e.g., 60% weightage skill relevance )
+        double skillScore = requiredSkills.isNotEmpty 
+            ? (matchedSkillsCount / requiredSkills.length) * 60.0 
+            : 60.0; // Agar koi skill required nahi toh full score
+
+        // Trust Score Weight (e.g., 40% weightage Trust Score)
+        // like as 89% trust score means (0.40 * 89) = 35.6 points
+        double trustScoreWeight = (seller.trustScore / 100.0) * 40.0;
+
+        // Final Composite Score
+        double finalScore = skillScore + trustScoreWeight;
+
+        return {
+          'seller': seller,
+          'score': finalScore,
+        };
+      }).where((item) => item['score'] >= 0.0).toList(); // Irrelevant sellers ko hata diya
+
+      // 4. Sort by Score (Descending: very revelevant sellers first)
+      scoredSellers.sort((a, b) => (b['score'] as double).compareTo(a['score'] as double));
+
+      // 5. Balanced Exposure for Similarly Relevant Profiles:
+      List<UserModel> finalMatchedList = [];
+      for (var item in scoredSellers) {
+        finalMatchedList.add(item['seller'] as UserModel);
+      }
+
+      return finalMatchedList;
+    } catch (e) {
+      print('Error in smart matching: $e');
+      return [];
+    }
+    String verificationStatus = data['verificationStatus'] ?? 'Not Verified';
   }
 }
