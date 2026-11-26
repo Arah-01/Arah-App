@@ -136,6 +136,26 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fundEscrowTest(String orderId,double amount) async {
+    try {
+      await _firestoreService.fundEscrowTest(orderId: orderId, amount: amount);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('fundEscrowTest error: $e');
+      rethrow; // Rethrow the error to be handled by the caller
+    }
+  }
+
+  Future<void> markOrderDelivered(String orderId) async {
+    try {
+      await _firestoreService.markOrderDeliveredTest(orderId: orderId);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('markOrderDelivered error: $e');
+      rethrow;
+    }
+  }
+
   /// Accept an order request
   Future<void> acceptOrder(String orderId) async {
     try {

@@ -540,4 +540,28 @@ class FirestoreService {
       return [];
     }
   }
+  Future<void> fundEscrowTest({
+    required String orderId,
+    required double amount,
+  }) async{
+    final commission = amount*0.09;
+    final sellerReceivable = amount-commission;
+
+    await _db.collection('orders').doc(orderId).update({
+      'status':'Escrow(Held)',
+      'paymentsStatus':'EscrowFunded_Test',
+      'escrowAmount':amount,
+      'plateformCommission':commission,
+      'sellerReceivable':sellerReceivable,
+      'escrowFundedAt':Fieldvalue.serverTimestamp(),
+    });
+  }
+  Future<void> markOrderDeliveredTest({
+    required String orderId,
+  }) async{
+    await _db.collection('orders').doc(orderId).update({
+      'status':'Delivered',
+      'deliveredAt':Fieldvalue.serverTimestamp(),
+    });
+  }
 }
