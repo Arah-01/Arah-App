@@ -75,7 +75,7 @@ class UserModel {
       verificationStatus: map['verificationStatus'] ?? 'Not Verified',
       AccountStatus: map['AccountStatus'] ?? 'Active',
       suspensionEndDate: map['suspensionEndDate'] != null ? DateTime.parse(map['suspensionEndDate']) : null,
-      positiveReviewcbuyerids: List<String>.from(map['positiveReviewcbuyerids'] ?? [])
+      positiveReviewcbuyerids: List<String>.from(map['positiveReviewcbuyerids'] ?? []),
       islongtermpaused: map['islongtermpaused'] ?? false,
     );
   }
@@ -118,7 +118,7 @@ class UserModel {
     String? linkedinUrl,
     String? currentMode,
     bool? isProfilePublic,
-    String sellercategory,
+    String? sellercategory,
     int? trustScore,
     int? completedshortTermTasks,
     List<String>? uniqueBuyerIds,
