@@ -553,7 +553,7 @@ class FirestoreService {
       'escrowAmount':amount,
       'plateformCommission':commission,
       'sellerReceivable':sellerReceivable,
-      'escrowFundedAt':Fieldvalue.serverTimestamp(),
+      'escrowFundedAt':FieldValue.serverTimestamp(),
     });
   }
   Future<void> markOrderDeliveredTest({
@@ -561,7 +561,7 @@ class FirestoreService {
   }) async{
     await _db.collection('orders').doc(orderId).update({
       'status':'Delivered',
-      'deliveredAt':Fieldvalue.serverTimestamp(),
+      'deliveredAt':FieldValue.serverTimestamp(),
     });
   }
 }
